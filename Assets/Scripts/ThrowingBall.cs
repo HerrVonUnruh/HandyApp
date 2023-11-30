@@ -1,52 +1,58 @@
 using UnityEngine;
 
-public class MovingBall : MonoBehaviour
+public class ThrowingBall : MonoBehaviour
 {
-    public float moveSpeed = 5f;
-    public float jumpForce = 10f;
+    public float moveSpeedMultiplier = 5f;
+    public float jumpForce = 15f;
     public Rigidbody rb;
-    private Vector2 touchStartPosition;
+    private Vector2 lastTouchPosition;
+    private float lastTouchTime;
     private bool isJumping = false;
 
     void Update()
     {
-        // Überprüfen, ob der Bildschirm berührt wird
         if (Input.touchCount > 0)
         {
             Touch touch = Input.GetTouch(0);
 
-            switch (touch.phase)
+            if (touch.phase == TouchPhase.Began && TouchWithinObject(touch.position))
             {
-                case TouchPhase.Began:
-                    touchStartPosition = touch.position;
-                    break;
+                lastTouchPosition = touch.position;
+                lastTouchTime = Time.time;
+            }
 
-                case TouchPhase.Moved:
-                    // Berechne die Distanz, die der Finger auf dem Bildschirm zurückgelegt hat
-                    float touchDeltaX = touch.position.x - touchStartPosition.x;
-                    float touchDeltaY = touch.position.y - touchStartPosition.y;
+            if (touch.phase == TouchPhase.Moved && TouchWithinObject(touch.position))
+            {
+                float touchDeltaX = touch.position.x - lastTouchPosition.x;
+                float touchDeltaY = touch.position.y - lastTouchPosition.y;
+                float touchDeltaTime = Time.time - lastTouchTime;
 
-                    // Bewegung basierend auf der Distanz und der Geschwindigkeit
-                    float moveX = Mathf.Clamp(touchDeltaX * Time.deltaTime * moveSpeed, -moveSpeed, moveSpeed);
+                float moveX = touchDeltaX / touchDeltaTime * moveSpeedMultiplier * Time.deltaTime;
+                float moveY = touchDeltaY / touchDeltaTime * moveSpeedMultiplier * Time.deltaTime;
 
-                    // Bewegung auf der x-Achse basierend auf der Touch-Bewegung
-                    rb.velocity = new Vector2(moveX, rb.velocity.y);
+                rb.velocity = new Vector2(moveX, rb.velocity.y + moveY);
 
-                    // Springen, wenn eine vertikale Bewegung erkannt wird
-                    if (touchDeltaY > 100 && !isJumping)
-                    {
-                        rb.velocity = new Vector2(rb.velocity.x, jumpForce);
-                        isJumping = true;
-                    }
-                    break;
+                if (touchDeltaY > 100 && !isJumping)
+                {
+                    rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+                    isJumping = true;
+                }
 
-                case TouchPhase.Ended:
-                case TouchPhase.Canceled:
-                    // Setze die Geschwindigkeit auf Null, wenn der Finger den Bildschirm nicht mehr berührt
-                    rb.velocity = new Vector2(0, rb.velocity.y);
-                    isJumping = false;
-                    break;
+                lastTouchPosition = touch.position;
+                lastTouchTime = Time.time;
+            }
+
+            if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
+            {
+                rb.velocity = new Vector2(0, rb.velocity.y);
+                isJumping = false;
             }
         }
+    }
+
+    bool TouchWithinObject(Vector2 touchPosition)
+    {
+        RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(touchPosition), Vector2.zero);
+        return (hit.collider != null && hit.collider.gameObject == gameObject);
     }
 }

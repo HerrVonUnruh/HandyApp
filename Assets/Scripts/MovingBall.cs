@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class MovingBall : MonoBehaviour
 {
-    public float moveSpeed = 5f;
-    public float jumpForce = 10f;
+    public float moveSpeed = 500f;
+    public float jumpForce = 500f;
     public Rigidbody rb;
     private Vector2 touchStartPosition;
     private bool isJumping = false;
