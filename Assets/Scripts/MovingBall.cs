@@ -1,12 +1,12 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerCharacter : MonoBehaviour
+public class MovingBall : MonoBehaviour
 {
     public float moveSpeed = 5f;
+    public float jumpForce = 10f;
     public Rigidbody rb;
     private Vector2 touchStartPosition;
+    private bool isJumping = false;
 
     void Update()
     {
@@ -23,19 +23,28 @@ public class PlayerCharacter : MonoBehaviour
 
                 case TouchPhase.Moved:
                     // Berechne die Distanz, die der Finger auf dem Bildschirm zurückgelegt hat
-                    float touchDelta = touch.position.x - touchStartPosition.x;
+                    float touchDeltaX = touch.position.x - touchStartPosition.x;
+                    float touchDeltaY = touch.position.y - touchStartPosition.y;
 
-                    // Berechne die Bewegung basierend auf der Distanz und der Geschwindigkeit
-                    float move = Mathf.Clamp(touchDelta * Time.deltaTime * moveSpeed, -moveSpeed, moveSpeed);
+                    // Bewegung basierend auf der Distanz und der Geschwindigkeit
+                    float moveX = Mathf.Clamp(touchDeltaX * Time.deltaTime * moveSpeed, -moveSpeed, moveSpeed);
 
                     // Bewegung auf der x-Achse basierend auf der Touch-Bewegung
-                    rb.velocity = new Vector2(move, rb.velocity.y);
+                    rb.velocity = new Vector2(moveX, rb.velocity.y);
+
+                    // Springen, wenn eine vertikale Bewegung erkannt wird
+                    if (touchDeltaY > 100 && !isJumping)
+                    {
+                        rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+                        isJumping = true;
+                    }
                     break;
 
                 case TouchPhase.Ended:
                 case TouchPhase.Canceled:
                     // Setze die Geschwindigkeit auf Null, wenn der Finger den Bildschirm nicht mehr berührt
                     rb.velocity = new Vector2(0, rb.velocity.y);
+                    isJumping = false;
                     break;
             }
         }
