@@ -2,11 +2,10 @@ using UnityEngine;
 
 public class ThrowingBall : MonoBehaviour
 {
-    public float moveSpeedMultiplier = 5f;
-    public float jumpForce = 15f;
+    public float moveSpeed = 5f;
+    public float jumpForce = 10f;
     public Rigidbody rb;
-    private Vector2 lastTouchPosition;
-    private float lastTouchTime;
+    private Vector2 touchStartPosition;
     private bool isJumping = false;
 
     void Update()
@@ -15,44 +14,53 @@ public class ThrowingBall : MonoBehaviour
         {
             Touch touch = Input.GetTouch(0);
 
-            if (touch.phase == TouchPhase.Began && TouchWithinObject(touch.position))
+            if (TouchWithinObject(touch.position))
             {
-                lastTouchPosition = touch.position;
-                lastTouchTime = Time.time;
-            }
-
-            if (touch.phase == TouchPhase.Moved && TouchWithinObject(touch.position))
-            {
-                float touchDeltaX = touch.position.x - lastTouchPosition.x;
-                float touchDeltaY = touch.position.y - lastTouchPosition.y;
-                float touchDeltaTime = Time.time - lastTouchTime;
-
-                float moveX = touchDeltaX / touchDeltaTime * moveSpeedMultiplier * Time.deltaTime;
-                float moveY = touchDeltaY / touchDeltaTime * moveSpeedMultiplier * Time.deltaTime;
-
-                rb.velocity = new Vector2(moveX, rb.velocity.y + moveY);
-
-                if (touchDeltaY > 100 && !isJumping)
+                switch (touch.phase)
                 {
-                    rb.velocity = new Vector2(rb.velocity.x, jumpForce);
-                    isJumping = true;
+                    case TouchPhase.Began:
+                        touchStartPosition = touch.position;
+                        break;
+
+                    case TouchPhase.Moved:
+                        float touchDeltaX = touch.position.x - touchStartPosition.x;
+                        float touchDeltaY = touch.position.y - touchStartPosition.y;
+
+                        float moveX = Mathf.Clamp(touchDeltaX * Time.deltaTime * moveSpeed, -moveSpeed, moveSpeed);
+                        float moveY = Mathf.Clamp(touchDeltaY * Time.deltaTime * moveSpeed, -moveSpeed, moveSpeed);
+
+                        rb.velocity = new Vector2(moveX, rb.velocity.y + moveY);
+
+                        if (touchDeltaY > 100 && !isJumping)
+                        {
+                            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+                            isJumping = true;
+                        }
+                        break;
+
+                    case TouchPhase.Ended:
+                    case TouchPhase.Canceled:
+                        rb.velocity = new Vector2(0, rb.velocity.y);
+                        isJumping = false;
+                        break;
                 }
-
-                lastTouchPosition = touch.position;
-                lastTouchTime = Time.time;
-            }
-
-            if (touch.phase == TouchPhase.Ended || touch.phase == TouchPhase.Canceled)
-            {
-                rb.velocity = new Vector2(0, rb.velocity.y);
-                isJumping = false;
             }
         }
     }
 
     bool TouchWithinObject(Vector2 touchPosition)
     {
-        RaycastHit2D hit = Physics2D.Raycast(Camera.main.ScreenToWorldPoint(touchPosition), Vector2.zero);
-        return (hit.collider != null && hit.collider.gameObject == gameObject);
+        RaycastHit hit;
+        Ray ray = Camera.main.ScreenPointToRay(touchPosition);
+
+        if (Physics.Raycast(ray, out hit))
+        {
+            if (hit.collider.gameObject == gameObject)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
